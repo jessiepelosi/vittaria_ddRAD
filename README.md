@@ -8,7 +8,7 @@ This repository houses the code for the analysis of the population genomics of <
 
 Please feel free to contact me with any questions or concerns at: jessiepelosi@ufl.edu.
 
-Raw sequencing data can be found under BioProject XXX in the NCBI SRA.
+Raw sequencing data can be found under BioProject PRJNA1041843 in the NCBI SRA.
 
 This repository is split into the following directories: 
 
