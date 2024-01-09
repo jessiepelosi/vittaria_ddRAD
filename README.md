@@ -4,7 +4,7 @@ This repository houses the code for the analysis of the population genomics of <
 
 >Popuation genomics of the gametophyte-only fern <i>Vittaria appalachiana</i> provides insights into clonal plant evolution.
 >
->J.A. Pelosi, Elissa S. Sorojsrisom, W. Brad Barbazuk, and Emily B. Sessa. 
+>Jessie A. Pelosi, Elissa S. Sorojsrisom, W. Brad Barbazuk, and Emily B. Sessa. 
 
 Please feel free to contact me with any questions or concerns at: jessiepelosi@ufl.edu.
 
