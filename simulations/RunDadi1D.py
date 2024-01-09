@@ -200,7 +200,7 @@ elif MODEL=="three_epoch_inbreeding":
 	F=float(args.F)
 
 	# 02. Define model and extrapolate function
-	func = dadi.Demographics1D.exponential_growth
+	func = dadi.Demographics1D.three_epoch_inbreeding
 	model_ex = dadi.Numerics.make_extrap_func(func)
 
 	# 03. Define parameter space
