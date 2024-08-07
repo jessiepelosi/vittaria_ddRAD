@@ -6,13 +6,14 @@ This repository houses the code for the analysis of the population genomics of <
 >
 >Jessie A. Pelosi, Elissa S. Sorojsrisom, W. Brad Barbazuk, and Emily B. Sessa. 
 
-Please feel free to contact me with any questions or concerns at: jessiepelosi@ufl.edu.
+Please feel free to contact me with any questions or concerns at: jessiepelosi@arizona.edu.
 
 Raw sequencing data can be found under BioProject PRJNA1041843 in the NCBI SRA.
 
 This repository is split into the following directories: 
 
 1. [Analysis of ddRAD data](https://github.com/jessiepelosi/vittaria_ddRAD/tree/main/analysis)
-2. [Simulations of demography and genetic diversity](https://github.com/jessiepelosi/vittaria_ddRAD/tree/main/simulations) 
-3. [Pictures of selected samples](https://github.com/jessiepelosi/vittaria_ddRAD/tree/main/Pictures)
-4. [Voucher information for specimens sequenced in this study](https://github.com/jessiepelosi/vittaria_ddRAD/blob/main/vouchers/Vittaria_collections.csv)
+2. [Simulations of demography](https://github.com/jessiepelosi/vittaria_ddRAD/tree/main/simulations)
+3. [Life cycle simlulations and genetic diversity](https://github.com/jessiepelosi/vittaria_ddRAD/tree/main/shadie)
+4. [Pictures of selected samples](https://github.com/jessiepelosi/vittaria_ddRAD/tree/main/Pictures)
+5. [Voucher information for specimens sequenced in this study](https://github.com/jessiepelosi/vittaria_ddRAD/blob/main/vouchers/Vittaria_collections.csv)
