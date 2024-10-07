@@ -1,0 +1,326 @@
+---
+title: "ddRADWithinColonies"
+author: "Jessie Pelosi"
+date: "2024-10-04"
+output: 
+  html_document:
+    code_folding: hide
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(adegenet)
+library(pegas)
+library(hierfstat)
+library(dplyr)
+library(vcfR)
+library(ggplot2)
+library(poppr)
+library(nlme)
+library(dartR)
+library(RColorBrewer)
+```
+
+
+# Within-colony diversity and isolation by distance 
+
+Estimates of pi and dxy from pixy (on command line). We decided to use Dxy since it is the average number of nucleotide differences between populations per site. 
+```{r warning=FALSE, include=TRUE}
+####--------------- AA3 ---------------####
+
+AA3_allSites_pi <- read.delim("pixy-maf0.1mm0.5DP4/AA3.samples.allsites_pi.txt")
+mean(AA3_allSites_pi$avg_pi, na.rm = T)
+
+AA3_var_pi <- read.delim("pixy-maf0.1mm0.5DP4/AA3.samples.variants_pi.txt")
+mean(AA3_var_pi$avg_pi, na.rm = T)
+
+# 1 = JAP68, 2 = JAP69, 3 = JAP70
+# I don't have physical distance between JAP70 and other samples, cannot do IBD test with this colony
+
+# Including invariant sites
+AA3 <- read.vcfR("within_colony_vcfs/AA3.samples.allSites.thinned.recode.vcf", convertNA = T)
+AA3.gid <- vcfR2genind(AA3)
+pop(AA3.gid) <- c("AA3", "AA3", "AA3")
+AA3.basicStats <- basic.stats(AA3.gid)
+knitr::kable(AA3.basicStats$overall, caption = "Basic population genetic statistics for colony AA3 derived from invariable + variant sites using hierfstat.")
+#poppr(AA3.gid)
+
+# Variant-only sites
+AA3 <- read.vcfR("within_colony_vcfs/AA3.samples.variantSites.thinned.recode.vcf", convertNA = T)
+AA3.gid <- vcfR2genind(AA3)
+pop(AA3.gid) <- c("AA3", "AA3", "AA3")
+AA3.basicStats <- basic.stats(AA3.gid)
+#poppr(AA3.gid)
+knitr::kable(AA3.basicStats$overall, caption = "Basic population genetic statistics for colony AA3 derived from variant-only sites using hierfstat.")
+
+####--------------- CC9 ---------------####
+CC9_allSites_pi <- read.delim("pixy-maf0.1mm0.5DP4/CC9.samples.allsites_pi.txt")
+mean(CC9_allSites_pi$avg_pi, na.rm = T)
+
+CC9_var_pi <- read.delim("pixy-maf0.1mm0.5DP4/CC9.samples.variants_pi.txt")
+mean(CC9_var_pi$avg_pi, na.rm = T)
+
+#1 = JAP20, 2 = JAP22, 3 = JAP23
+CC9_allSites_dxy <- read.delim("pixy-maf0.1mm0.5DP4/CC9.samples.allSites_dxy.txt")
+CC9_allSites_dxy_sum <- CC9_allSites_dxy %>% 
+  group_by(pop1, pop2) %>% 
+  summarize(DXY = mean(avg_dxy, na.rm = T))
+
+CC9_var_dxy <- read.delim("pixy-maf0.1mm0.5DP4/CC9.samples.variants_dxy.txt")
+CC9_var_dxy_sum <- CC9_var_dxy %>% 
+  group_by(pop1, pop2) %>% 
+  summarize(DXY = mean(avg_dxy, na.rm = T))
+
+CC9_phys_dist <- c(32, 64, 32) 
+CC9_allSites_dxy_sum$physical_dist <- CC9_phys_dist
+#ggplot(data = CC9_allSites_dxy_sum, mapping = aes(x=physical_dist, y= DXY)) + geom_point()
+
+CC9_var_dxy_sum$physical_dist <- CC9_phys_dist
+#ggplot(data = CC9_var_dxy_sum, mapping = aes(x=physical_dist, y= DXY)) + geom_point()
+
+# Including invariant sites
+CC9 <- read.vcfR("within_colony_vcfs/CC9.samples.allSites.thinned.recode.vcf", convertNA = T)
+CC9.gid <- vcfR2genind(CC9)
+pop(CC9.gid) <- c("CC9", "CC9", "CC9")
+CC9.basicStats <- basic.stats(CC9.gid)
+#poppr(CC9.gid)
+knitr::kable(CC9.basicStats$overall, caption = "Basic population genetic statistics for colony CC9 derived from variable + invariant sites using hierfstat.")
+
+# Variant-only sites
+CC9 <- read.vcfR("within_colony_vcfs/CC9.samples.variantSites.thinned.recode.vcf", convertNA = T)
+CC9.gid <- vcfR2genind(CC9)
+pop(CC9.gid) <- c("CC9", "CC9", "CC9")
+CC9.basicStats <- basic.stats(CC9.gid)
+#poppr(CC9.gid)
+knitr::kable(CC9.basicStats$overall, caption = "Basic population genetic statistics for colony CC9 derived from variant-only sites using hierfstat.")
+
+####--------------- PN2 ---------------####
+PN2_allSites_pi <- read.delim("pixy-maf0.1mm0.5DP4/PN2.samples.allsites_pi.txt")
+mean(PN2_allSites_pi$avg_pi, na.rm = T)
+
+PN2_var_pi <- read.delim("pixy-maf0.1mm0.5DP4/PN2.samples.variants_pi.txt")
+mean(PN2_var_pi$avg_pi, na.rm = T)
+
+#1 = JAP167, 2 = JAP168, 3 = JAP169
+PN2_allSites_dxy <- read.delim("pixy-maf0.1mm0.5DP4/PN2.samples.allSites_dxy.txt")
+PN2_allSites_dxy_sum <- PN2_allSites_dxy %>% 
+  group_by(pop1, pop2) %>% 
+  summarize(DXY = mean(avg_dxy, na.rm = T))
+
+PN2_var_dxy <- read.delim("pixy-maf0.1mm0.5DP4/PN2.samples.variants_dxy.txt")
+PN2_var_dxy_sum <- PN2_var_dxy %>% 
+  group_by(pop1, pop2) %>% 
+  summarize(DXY = mean(avg_dxy, na.rm = T))
+
+PN2_phys_dist <- c(20, 10, 10) 
+PN2_allSites_dxy_sum$physical_dist <- PN2_phys_dist
+#ggplot(data = PN2_allSites_dxy_sum, mapping = aes(x=physical_dist, y= DXY)) + geom_point()
+
+PN2_var_dxy_sum$physical_dist <- PN2_phys_dist
+#ggplot(data = PN2_var_dxy_sum, mapping = aes(x=physical_dist, y= DXY)) + geom_point()
+
+# Including invariant sites
+PN2 <- read.vcfR("within_colony_vcfs/PN2.allSites.thinned.recode.vcf", convertNA = T)
+PN2.gid <- vcfR2genind(PN2)
+pop(PN2.gid) <- c("PN2", "PN2", "PN2")
+PN2.basicStats <- basic.stats(PN2.gid)
+#poppr(CC9.gid)
+knitr::kable(PN2.basicStats$overall, caption = "Basic population genetic statistics for colony PN2 derived from variable + invariant sites using hierfstat.")
+
+# Variant-only sites
+PN2 <- read.vcfR("within_colony_vcfs/PN2.variantSites.thinned.recode.vcf", convertNA = T)
+PN2.gid <- vcfR2genind(PN2)
+pop(PN2.gid) <- c("PN2", "PN2", "PN2")
+PN2.basicStats <- basic.stats(PN2.gid)
+#poppr(CC9.gid)
+knitr::kable(PN2.basicStats$overall, caption = "Basic population genetic statistics for colony PN2 derived from variant-only sites using hierfstat.")
+
+####--------------- SH7 ----------------####
+SH7_allSites_pi <- read.delim("pixy-maf0.1mm0.5DP4/SH7.samples.allsites_pi.txt")
+mean(SH7_allSites_pi$avg_pi, na.rm = T)
+
+SH7_var_pi <- read.delim("pixy-maf0.1mm0.5DP4/SH7.samples.variants_pi.txt")
+mean(SH7_var_pi$avg_pi, na.rm = T)
+
+#1 = JAP86, 2 = JAP87, 3 = JAP90
+SH7_allSites_dxy <- read.delim("pixy-maf0.1mm0.5DP4/SH7.samples.allSites_dxy.txt")
+SH7_allSites_dxy_sum <- SH7_allSites_dxy %>% 
+  group_by(pop1, pop2) %>% 
+  summarize(DXY = mean(avg_dxy, na.rm = T))
+
+SH7_var_dxy <- read.delim("pixy-maf0.1mm0.5DP4/SH7.samples.variants_dxy.txt")
+SH7_var_dxy_sum <- SH7_var_dxy %>% 
+  group_by(pop1, pop2) %>% 
+  summarize(DXY = mean(avg_dxy, na.rm = T))
+
+SH7_phys_dist <- c(16, 18, 10) 
+SH7_allSites_dxy_sum$physical_dist <- SH7_phys_dist
+#ggplot(data = SH7_allSites_dxy_sum, mapping = aes(x=physical_dist, y= DXY)) + geom_point()
+
+SH7_var_dxy_sum$physical_dist <- SH7_phys_dist
+#ggplot(data = SH7_var_dxy_sum, mapping = aes(x=physical_dist, y= DXY)) + geom_point()
+
+# Including invariant sites
+SH7 <- read.vcfR("within_colony_vcfs/SH7.samples.allSites.thinned.recode.vcf", convertNA = T)
+SH7.gid <- vcfR2genind(SH7)
+pop(SH7.gid) <- c("SH7", "SH7", "SH7")
+SH7.basicStats <- basic.stats(SH7.gid)
+#poppr(CC9.gid)
+knitr::kable(SH7.basicStats$overall, caption = "Basic population genetic statistics for colony SH7 derived from variable + invariant sites using hierfstat.")
+
+# Variant-only sites
+SH7 <- read.vcfR("within_colony_vcfs/SH7.samples.variantSites.thinned.recode.vcf", convertNA = T)
+SH7.gid <- vcfR2genind(SH7)
+pop(SH7.gid) <- c("SH7", "SH7", "SH7")
+SH7.basicStats <- basic.stats(SH7.gid)
+#poppr(CC9.gid)
+knitr::kable(SH7.basicStats$overall, caption = "Basic population genetic statistics for colony SH7 derived from variant-only sites using hierfstat.")
+
+####--------------- PM2 ----------------####
+
+PM2_allSites_pi <- read.delim("pixy-maf0.1mm0.5DP4/PM2.samples.allsites_pi.txt")
+mean(PM2_allSites_pi$avg_pi, na.rm = T)
+
+PM2_var_pi <- read.delim("pixy-maf0.1mm0.5DP4/PM2.samples.variants_pi.txt")
+mean(PM2_var_pi$avg_pi, na.rm = T)
+
+#1 = JAP45, 2 = JAP46, 3 = JAP 47, 4 = JAP48
+PM2_allSites_dxy <- read.delim("pixy-maf0.1mm0.5DP4/PM2.samples.allSites_dxy.txt")
+PM2_allSites_dxy_sum <- PM2_allSites_dxy %>% 
+  group_by(pop1, pop2) %>% 
+  summarize(DXY = mean(avg_dxy, na.rm = T))
+
+PM2_var_dxy <- read.delim("pixy-maf0.1mm0.5DP4/PM2.samples.variants_dxy.txt")
+PM2_var_dxy_sum <- PM2_var_dxy %>% 
+  group_by(pop1, pop2) %>% 
+  summarize(DXY = mean(avg_dxy, na.rm = T))
+
+PM2_phys_dist <- c(16, 32, 22.6, 16, 16, 22.6) 
+PM2_allSites_dxy_sum$physical_dist <- PM2_phys_dist
+#ggplot(data = PM2_allSites_dxy_sum, mapping = aes(x=physical_dist, y= DXY)) + geom_point()
+
+PM2_var_dxy_sum$physical_dist <- PM2_phys_dist
+#ggplot(data = PM2_var_dxy_sum, mapping = aes(x=physical_dist, y= DXY)) + geom_point()
+
+# Including invariant sites
+PM2 <- read.vcfR("within_colony_vcfs/PM2.samples.allSites.thinned.recode.vcf", convertNA = T)
+PM2.gid <- vcfR2genind(PM2)
+pop(PM2.gid) <- c("PM2", "PM2", "PM2", "PM2")
+PM2.basicStats <- basic.stats(PM2.gid)
+#poppr(CC9.gid)
+knitr::kable(PM2.basicStats$overall, caption = "Basic population genetic statistics for colony PM2 derived from variable + invariant sites using hierfstat.")
+
+# Variant-only sites
+PM2 <- read.vcfR("within_colony_vcfs/PM2.samples.variantSites.thinned.recode.vcf", convertNA = T)
+PM2.gid <- vcfR2genind(PM2)
+pop(PM2.gid) <- c("PM2", "PM2", "PM2", "PM2")
+PN2.basicStats <- basic.stats(PM2.gid)
+knitr::kable(PM2.basicStats$overall, caption = "Basic population genetic statistics for colony PN2 derived from variant-only sites using hierfstat.")
+PM2.poppr <- poppr(PM2.gid)
+
+####--------------- RC1 ----------------####
+
+RC1_allSites_pi <- read.delim("pixy-maf0.1mm0.5DP4/RC1.samples.allsites_pi.txt")
+mean(RC1_allSites_pi$avg_pi, na.rm = T)
+
+RC1_var_pi <- read.delim("pixy-maf0.1mm0.5DP4/RC1.samples.variants_pi.txt")
+mean(RC1_var_pi$avg_pi, na.rm = T)
+
+#1 = JAP30, 2 = JAP31, 3 = JAP 32, 4 = JAP33
+RC1_allSites_dxy <- read.delim("pixy-maf0.1mm0.5DP4/RC1.samples.allSites_dxy.txt")
+RC1_allSites_dxy_sum <- RC1_allSites_dxy %>% 
+  group_by(pop1, pop2) %>% 
+  summarize(DXY = mean(avg_dxy, na.rm = T))
+
+RC1_var_dxy <- read.delim("pixy-maf0.1mm0.5DP4/RC1.samples.variants_dxy.txt")
+RC1_var_dxy_sum <- RC1_var_dxy %>% 
+  group_by(pop1, pop2) %>% 
+  summarize(DXY = mean(avg_dxy, na.rm = T))
+
+RC1_phys_dist <- c(16, 32, 48, 16, 32, 16) 
+RC1_allSites_dxy_sum$physical_dist <- RC1_phys_dist
+#ggplot(data = RC1_allSites_dxy_sum, mapping = aes(x=physical_dist, y= DXY)) + geom_point()
+
+RC1_var_dxy_sum$physical_dist <- RC1_phys_dist
+#ggplot(data = RC1_var_dxy_sum, mapping = aes(x=physical_dist, y= DXY)) + geom_point()
+
+# Including invariant sites
+RC1 <- read.vcfR("within_colony_vcfs/RC1.samples.allSites.thinned.recode.vcf", convertNA = T)
+RC1.gid <- vcfR2genind(RC1)
+pop(RC1.gid) <- c("RC1", "RC1", "RC1", "RC1")
+RC1.basicStats <- basic.stats(RC1.gid)
+#poppr(CC9.gid)
+knitr::kable(RC1.basicStats$overall, caption = "Basic population genetic statistics for colony RC1 derived from variable + invariant sites using hierfstat.")
+
+# Variant-only sites
+RC1 <- read.vcfR("within_colony_vcfs/RC1.samples.variantSites.thinned.recode.vcf", convertNA = T)
+RC1.gid <- vcfR2genind(RC1)
+pop(RC1.gid) <- c("RC1", "RC1", "RC1", "RC1")
+RC1.basicStats <- basic.stats(RC1.gid)
+#poppr(CC9.gid)
+knitr::kable(RC1.basicStats$overall, caption = "Basic population genetic statistics for colony RC1 derived from variant-only sites using hierfstat.")
+
+# Test for isolation by distance: significant correlation between genetic and physical distances
+
+## Variant + invariant 
+CC9_all_dxy_sum_tocat <- CC9_allSites_dxy_sum %>% 
+  select(DXY, physical_dist)
+CC9_all_dxy_sum_tocat$pop1 <- "CC9"
+
+SH7_all_dxy_sum_tocat <- SH7_allSites_dxy_sum %>% 
+  select(DXY, physical_dist)
+SH7_all_dxy_sum_tocat$pop1 <- "SH7"
+
+PN2_all_dxy_sum_tocat <- PN2_allSites_dxy_sum %>% 
+  select(DXY, physical_dist)
+PN2_all_dxy_sum_tocat$pop1 <- "PN2"
+
+PM2_all_dxy_sum_tocat <- PM2_allSites_dxy_sum %>% 
+  select(DXY, physical_dist)
+PM2_all_dxy_sum_tocat$pop1 <- "PM2"
+
+RC1_all_dxy_sum_tocat <- RC1_allSites_dxy_sum %>% 
+  select(DXY, physical_dist)
+RC1_all_dxy_sum_tocat$pop1 <- "RC1"
+
+all_col_all <- rbind(CC9_all_dxy_sum_tocat, SH7_all_dxy_sum_tocat, PN2_all_dxy_sum_tocat,
+                     PM2_all_dxy_sum_tocat, RC1_all_dxy_sum_tocat)
+
+ggplot(all_col_all, mapping = aes(x = physical_dist, y =DXY, color =pop1)) + geom_point() +
+  theme_classic() + geom_smooth(method = "lm", se = F)
+
+lin <- nlme::lme(DXY ~ physical_dist, random = ~1|pop1, data = all_col_all, na.action = na.omit)
+summary(lin)
+
+## Variant-only 
+CC9_var_dxy_sum_tocat <- CC9_var_dxy_sum %>% 
+  select(DXY, physical_dist)
+CC9_var_dxy_sum_tocat$pop1 <- "CC9"
+
+SH7_var_dxy_sum_tocat <- SH7_var_dxy_sum %>% 
+  select(DXY, physical_dist)
+SH7_var_dxy_sum_tocat$pop1 <- "SH7"
+
+PN2_var_dxy_sum_tocat <- PN2_var_dxy_sum %>% 
+  select(DXY, physical_dist)
+PN2_var_dxy_sum_tocat$pop1 <- "PN2"
+
+PM2_var_dxy_sum_tocat <- PM2_var_dxy_sum %>% 
+  select(DXY, physical_dist)
+PM2_var_dxy_sum_tocat$pop1 <- "PM2"
+
+RC1_var_dxy_sum_tocat <- RC1_var_dxy_sum %>% 
+  select(DXY, physical_dist)
+RC1_var_dxy_sum_tocat$pop1 <- "RC1"
+
+all_col_var <- rbind(CC9_var_dxy_sum_tocat, SH7_var_dxy_sum_tocat, PN2_var_dxy_sum_tocat,
+                     PM2_var_dxy_sum_tocat, RC1_var_dxy_sum_tocat)
+
+ggplot(all_col_var, mapping = aes(x = physical_dist, y =DXY, color =pop1)) + geom_point() +
+  theme_classic() + geom_smooth(method = "lm", se = F)
+
+lin <- nlme::lme(DXY ~ physical_dist, random = ~1|pop1, data = all_col_var, na.action = na.omit)
+summary(lin)
+```
+
