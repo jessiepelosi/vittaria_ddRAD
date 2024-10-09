@@ -1,0 +1,155 @@
+---
+title: "CloneCorrection"
+author: "Jessie Pelosi"
+date: "2024-10-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(adegenet)
+library(pegas)
+library(hierfstat)
+library(dplyr)
+library(vcfR)
+library(ggplot2)
+library(poppr)
+#library(HWxtest)
+library(nlme)
+library(dartR)
+library(RColorBrewer)
+library(pegas)
+```
+
+## Clone correction analyses
+
+```{r warning=FALSE}
+population_info <- read.delim("new_ordered_for_AllSites_classification.txt")
+sub50_all <- read.vcfR("allSites.filtered.ma1.mm0.5.dp4.thinned.recode.vcf")
+sub50_all.gid <- vcfR2genind(sub50_all, strata = population_info[,2:3], return.alleles = T)
+
+## Generate multi-locus lineages 
+
+# Calculate pairwise distances between samples  
+# provesti.dist is the same as diss.dist, just as % not raw allelic differences 
+distance <- provesti.dist(sub50_all.gid)
+distance
+write.table(as.matrix(distance), file = "provesti_dist_Oct6-24.txt")
+# Edit to determine which cells are inter- and intra- population and colony distances! 
+
+PopDiff <- read.csv("provesti_dist_Oct9-24.csv") %>% 
+  select(IntraPop, InterPop)
+PopDiff <- reshape2::melt(PopDiff)
+ggplot(data = PopDiff, mapping = aes(x = value, fill = variable)) + geom_density(alpha = 0.5, position = "identity") +
+  theme_classic() + xlab("Genetic Distance")
+t.test(value ~ variable, data = PopDiff, alternative = "less")
+ggsave("provesti_population_distance-Oct9-24.png", dpi = 300, height = 5, width =7)
+
+
+ColDiff <- read.csv("provesti_dist_Oct9-24.csv") %>% 
+  select(IntraColony, InterColony)
+ColDiff <- reshape2::melt(ColDiff)
+ggplot(data = ColDiff, mapping = aes(x = value, fill = variable)) + geom_density(alpha = 0.5, position = "identity") +
+  theme_classic() + xlab("Genetic Distance")
+t.test(value ~ variable, data = ColDiff, alternative = "less")
+ggsave("provesti_colony_distance_Oct9-24.png", dpi = 300, height = 5, width =7)
+
+sub50_all.gc <- as.genclone(sub50_all.gid)
+sub50_filtered <- filter_stats(sub50_all.gc, distance = distance, plot = TRUE, missing = "mean")
+
+sub50_filtered <- filter_stats(sub50_all.gc, distance = distance, plot = TRUE, hist = "scott")
+
+dist.mat <- distance
+
+fanlist <- list(farthest = sub50_filtered$farthest, average = sub50_filtered$average, 
+                nearest = sub50_filtered$nearest)
+
+
+plot_filter_stats <- function(x, fstats, distmat, cols = NULL, nclone = NULL, breaks = NULL){
+  upper <- round(max(distmat), digits = 1)
+  ylims <- c(ifelse(is.genind(x), suppressWarnings(nmll(x, "original")), nInd(x)), 1)
+  if (!is.null(breaks)){
+    graphics::hist(distmat, breaks = breaks, xlab = "", ylab = "", axes = FALSE,
+                   xlim = c(0, 0.04), main = "")
+    par(new = TRUE)
+  }
+  plot(x = c(0.03, 0), y = ylims, type = "n",
+       ylab = "Number of Multilocus Lineages",
+       xlab = "Genetic Distance Cutoff")
+  a <- if (inherits(fstats[[1]], "list")) fstats$average$THRESHOLDS else fstats$average
+  n <- if (inherits(fstats[[2]], "list")) fstats$nearest$THRESHOLDS else fstats$nearest
+  f <- if (inherits(fstats[[3]], "list")) fstats$farthest$THRESHOLDS else fstats$farthest
+  plotcols <- c("#E41A1C", "#377EB8", "#4DAF4A") # RColorBrewer::brewer.pal(3, "Set1")
+  names(plotcols) <- c("f", "a", "n")
+  points(x = rev(a), y = 1:length(a), col = plotcols["a"])
+  points(x = rev(f), y = 1:length(f), col = plotcols["f"])
+  points(x = rev(n), y = 1:length(n), col = plotcols["n"])
+  if (!is.null(nclone)){
+    abline(v = a[1 + length(a) - nclone] + .Machine$double.eps^0.5, lty = 2,
+           col = plotcols["a"])
+    abline(v = f[1 + length(f) - nclone] + .Machine$double.eps^0.5, lty = 2, 
+           col = plotcols["f"])
+    abline(v = n[1 + length(n) - nclone] + .Machine$double.eps^0.5, lty = 2, 
+           col = plotcols["n"])
+    abline(h = nclone)
+    text(upper, nclone, labels = paste0("n = ", nclone), 
+         adj = c(1, -0.5))
+    legend("topright", 
+           legend = c("Nearest Neighbor", "UPGMA", "Farthest Neighbor"), 
+           col = plotcols[c("n", "a", "f")], 
+           pch = 1, 
+           lty = 2,
+           title = "Clustering Method")
+  } else {
+    legend("topright", 
+           legend = c("Nearest Neighbor", "UPGMA", "Farthest Neighbor"), 
+           col = plotcols[c("n", "a", "f")], 
+           pch = 1, 
+           title = "Clustering Method")    
+  }
+}
+
+plot_filter_stats(sub50_all.gc, fanlist, distmat = dist.mat)
+hist(dist.mat, xlim = c(0,0.03))
+
+
+# Alter threshold values to explore clonality and diversity in colonies 
+
+# Threshold = 0.004 #
+mlg.filter(sub50_all.gc, distance = distance, algorithm = "farthest_neighbor") <- 0.004
+sub50_all.gc
+thresh0.004 <- mlg.table(sub50_all.gc)
+
+sub50.cc<- clonecorrect(sub50_all.gc, strata = ~Population/Colony)
+basic.stats(sub50.cc)
+# Ho      Hs      Ht     Dst     Htp    Dstp     Fst    Fstp     Fis    Dest 
+# 0.0309  0.0266  0.0270  0.0004  0.0271  0.0004  0.0140  0.0152 -0.1594  0.0004 
+sub50.cc.miss <- missingno(sub50.cc, type = "mean")
+poppr.amova(sub50.cc.miss, ~Population/Colony, algorithm = "ade4")
+
+# Threshold = 0.01 #
+mlg.filter(sub50_all.gc, distance = distance, algorithm = "farthest_neighbor") <- 0.01
+sub50_all.gc
+thresh0.01 <- mlg.table(sub50_all.gc)
+
+sub50.cc <- clonecorrect(sub50_all.gc, strata = ~Population/Colony)
+basic.stats(sub50.cc)
+#     Ho      Hs      Ht     Dst     Htp    Dstp     Fst    Fstp     Fis    Dest 
+# 0.0310  0.0267  0.0271  0.0004  0.0271  0.0004  0.0139  0.0151 -0.1599  0.0004 
+sub50.cc.miss <- missingno(sub50.cc, type = "mean")
+poppr.amova(sub50.cc.miss, ~Population/Colony)
+
+# Threshold = 0.015 #
+mlg.filter(sub50_all.gc, distance = distance, algorithm = "farthest_neighbor") <- 0.015
+sub50_all.gc
+thresh0.015 <- mlg.table(sub50_all.gc)
+
+sub50.cc <- clonecorrect(sub50_all.gc, strata = ~Population/Colony)
+basic.stats(sub50.cc)
+#   Ho     Hs     Ht    Dst    Htp   Dstp    Fst   Fstp    Fis   Dest 
+#0.0757 0.0762 0.0946 0.0184 0.0963 0.0201 0.1948 0.2083 0.0072 0.0217 
+
+sub50.cc.miss <- missingno(sub50.cc, type = "mean")
+poppr.amova(sub50.cc.miss, ~Population/Colony)
+
+```
